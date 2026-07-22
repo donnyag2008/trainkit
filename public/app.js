@@ -236,25 +236,24 @@ async function fetchComparison(fromCode, toCode, amt, midRate, fromCur, toCur, d
 
     if (data.providers && data.providers.length > 0) {
       // Render live provider data
-      const html = data.providers.slice(0, 6).map((p) => {
+      const html = data.providers.slice(0, 6).map((p, i) => {
         const alias = (p.alias || p.name || "").toLowerCase().replace(/\s+/g, "");
         const meta = PROVIDER_META[alias] || {};
         const color = meta.color || "#94a3b8";
         const url = meta.url;
-        const costInFrom = amt - (p.received / midRate);
-        const costClass = costInFrom < 5 ? "low" : costInFrom < 30 ? "mid" : "high";
+        const diff = converted - p.received;
         const linkHtml = url ? `<a class="svc-link" href="${url}" target="_blank" rel="noopener">Send via ${p.name} →</a>` : "";
-        const feeText = p.fee > 0 ? `Fee: ${fromCur.symbol}${fmt(p.fee, 2)}` : "No fee";
+        const badge = i === 0 ? `<span style="font-size:10px;background:rgba(45,212,191,0.15);color:#2dd4bf;padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:600">BEST</span>` : "";
         return `
           <div class="svc-card">
             <div class="svc-header">
               <div>
-                <div class="svc-name" style="color:${color}">${p.name}</div>
-                <div class="svc-tagline">${feeText} · Rate: ${fmt(p.rate, dp > 0 ? 4 : 2)}</div>
+                <div class="svc-name" style="color:${color}">${p.name}${badge}</div>
+                <div class="svc-tagline">${diff < 1 ? "Mid-market rate" : `${toCur.symbol} ${fmt(diff, dp)} less than mid-market`}</div>
               </div>
               <div style="text-align:right">
                 <div class="svc-amount">${toCur.symbol} ${fmt(p.received, dp)}</div>
-                <div class="svc-cost ${costClass}">Cost: ${fromCur.symbol}${fmt(Math.max(0, costInFrom), 2)}</div>
+                <div class="svc-tagline">Recipient gets</div>
               </div>
             </div>
             ${linkHtml}
@@ -275,24 +274,23 @@ async function fetchComparison(fromCode, toCode, amt, midRate, fromCur, toCur, d
     throw new Error("No providers");
   } catch (e) {
     // Fallback to static estimates
-    const fallbackHtml = SERVICES.map((svc) => {
+    const fallbackHtml = SERVICES.map((svc, i) => {
       const fee = amt * (svc.feePct / 100) + svc.feeFixed;
       const effectiveRate = midRate * (1 - svc.markup / 100);
       const received = (amt - fee) * effectiveRate;
-      const lostInTarget = converted - received;
-      const costInFrom = lostInTarget / midRate;
-      const costClass = costInFrom < 5 ? "low" : costInFrom < 30 ? "mid" : "high";
+      const diff = converted - received;
       const linkHtml = svc.url ? `<a class="svc-link" href="${svc.url}" target="_blank" rel="noopener">Send via ${svc.name} →</a>` : "";
+      const badge = i === 0 ? `<span style="font-size:10px;background:rgba(45,212,191,0.15);color:#2dd4bf;padding:2px 6px;border-radius:4px;margin-left:6px;font-weight:600">BEST</span>` : "";
       return `
         <div class="svc-card">
           <div class="svc-header">
             <div>
-              <div class="svc-name" style="color:${svc.color}">${svc.name}</div>
-              <div class="svc-tagline">${svc.tagline}</div>
+              <div class="svc-name" style="color:${svc.color}">${svc.name}${badge}</div>
+              <div class="svc-tagline">${diff < 1 ? "Mid-market rate" : `${toCur.symbol} ${fmt(diff, dp)} less than mid-market`}</div>
             </div>
             <div style="text-align:right">
               <div class="svc-amount">${toCur.symbol} ${fmt(received, dp)}</div>
-              <div class="svc-cost ${costClass}">Cost: ${fromCur.symbol}${fmt(costInFrom, 2)}</div>
+              <div class="svc-tagline">Recipient gets</div>
             </div>
           </div>
           ${linkHtml}
