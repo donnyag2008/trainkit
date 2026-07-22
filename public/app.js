@@ -212,9 +212,27 @@ async function fetchComparison(fromCode, toCode, amt, midRate, fromCur, toCur, d
   if (!svcContainer) return;
 
   try {
-    const res = await fetch(`/api/compare?source=${fromCode}&target=${toCode}&amount=${Math.round(amt)}`);
+    const res = await fetch(`https://api.wise.com/v4/comparisons/?sourceCurrency=${fromCode}&targetCurrency=${toCode}&sendAmount=${Math.round(amt)}`);
     if (!res.ok) throw new Error("API error");
-    const data = await res.json();
+    const wiseData = await res.json();
+
+    // Parse Wise comparison response into provider list
+    const providers = [];
+    if (Array.isArray(wiseData)) {
+      for (const provider of wiseData) {
+        if (!provider.quotes || provider.quotes.length === 0) continue;
+        let best = provider.quotes[0];
+        for (const q of provider.quotes) {
+          const qRcv = (amt - (q.fee || 0)) * (q.rate || 0);
+          const bRcv = (amt - (best.fee || 0)) * (best.rate || 0);
+          if (qRcv > bRcv) best = q;
+        }
+        const received = (amt - (best.fee || 0)) * (best.rate || 0);
+        providers.push({ name: provider.name || provider.alias, alias: provider.alias || "", fee: best.fee || 0, rate: best.rate || 0, received });
+      }
+      providers.sort((a, b) => b.received - a.received);
+    }
+    const data = { providers };
 
     if (data.providers && data.providers.length > 0) {
       // Render live provider data
