@@ -177,31 +177,7 @@ function updateFxResults() {
   const converted = amt * midRate;
   const dp = ["IDR", "JPY"].includes(toCode) ? 0 : 2;
 
-  let svcHtml = SERVICES.map((svc) => {
-    const fee = amt * (svc.feePct / 100) + svc.feeFixed;
-    const effectiveRate = midRate * (1 - svc.markup / 100);
-    const received = (amt - fee) * effectiveRate;
-    const lostInTarget = converted - received;
-    const costInFrom = lostInTarget / midRate;
-    const costClass = costInFrom < 5 ? "low" : costInFrom < 30 ? "mid" : "high";
-    const linkHtml = svc.url ? `<a class="svc-link" href="${svc.url}" target="_blank" rel="noopener">Send via ${svc.name} →</a>` : "";
-    return `
-      <div class="svc-card">
-        <div class="svc-header">
-          <div>
-            <div class="svc-name" style="color:${svc.color}">${svc.name}</div>
-            <div class="svc-tagline">${svc.tagline}</div>
-          </div>
-          <div style="text-align:right">
-            <div class="svc-amount">${toCur.symbol} ${fmt(received, dp)}</div>
-            <div class="svc-cost ${costClass}">Cost: ${fromCur.symbol}${fmt(costInFrom, 2)}</div>
-          </div>
-        </div>
-        ${linkHtml}
-      </div>
-    `;
-  }).join("");
-
+  // Show mid-market rate immediately
   container.innerHTML = `
     <div class="result-card highlight mt-16">
       <div class="result-label">Mid-Market Rate</div>
@@ -210,13 +186,109 @@ function updateFxResults() {
     </div>
     <div class="mt-20">
       <div class="svc-section-label">Transfer Comparison</div>
-      ${svcHtml}
-    </div>
-    <div class="disclaimer">
-      Indicative rates — cached for offline use. Fees are estimates, check each provider for exact pricing.
-      Rates auto-refresh when connected.
+      <div id="svcCards" style="opacity:0.5"><div class="svc-card"><div style="color:#64748b;text-align:center;padding:8px">Loading live provider rates...</div></div></div>
     </div>
   `;
+
+  // Fetch live comparison data
+  fetchComparison(fromCode, toCode, amt, midRate, fromCur, toCur, dp, converted);
+}
+
+// Known provider colors and URLs
+const PROVIDER_META = {
+  wise: { color: "#9fe870", url: "https://wise.com/send" },
+  revolut: { color: "#6c63ff", url: "https://revolut.com" },
+  ofx: { color: "#00b4d8", url: "https://ofx.com" },
+  currencyfair: { color: "#42b983", url: "https://currencyfair.com" },
+  xe: { color: "#00a4e4", url: "https://xe.com" },
+  remitly: { color: "#3dba73", url: "https://remitly.com" },
+  westernunion: { color: "#ffdd00", url: "https://westernunion.com" },
+  moneygram: { color: "#ff6600", url: "https://moneygram.com" },
+  worldremit: { color: "#753bbd", url: "https://worldremit.com" },
+};
+
+async function fetchComparison(fromCode, toCode, amt, midRate, fromCur, toCur, dp, converted) {
+  const svcContainer = document.getElementById("svcCards");
+  if (!svcContainer) return;
+
+  try {
+    const res = await fetch(`/api/compare?source=${fromCode}&target=${toCode}&amount=${Math.round(amt)}`);
+    if (!res.ok) throw new Error("API error");
+    const data = await res.json();
+
+    if (data.providers && data.providers.length > 0) {
+      // Render live provider data
+      const html = data.providers.slice(0, 6).map((p) => {
+        const alias = (p.alias || p.name || "").toLowerCase().replace(/\s+/g, "");
+        const meta = PROVIDER_META[alias] || {};
+        const color = meta.color || "#94a3b8";
+        const url = meta.url;
+        const costInFrom = amt - (p.received / midRate);
+        const costClass = costInFrom < 5 ? "low" : costInFrom < 30 ? "mid" : "high";
+        const linkHtml = url ? `<a class="svc-link" href="${url}" target="_blank" rel="noopener">Send via ${p.name} →</a>` : "";
+        const feeText = p.fee > 0 ? `Fee: ${fromCur.symbol}${fmt(p.fee, 2)}` : "No fee";
+        return `
+          <div class="svc-card">
+            <div class="svc-header">
+              <div>
+                <div class="svc-name" style="color:${color}">${p.name}</div>
+                <div class="svc-tagline">${feeText} · Rate: ${fmt(p.rate, dp > 0 ? 4 : 2)}</div>
+              </div>
+              <div style="text-align:right">
+                <div class="svc-amount">${toCur.symbol} ${fmt(p.received, dp)}</div>
+                <div class="svc-cost ${costClass}">Cost: ${fromCur.symbol}${fmt(Math.max(0, costInFrom), 2)}</div>
+              </div>
+            </div>
+            ${linkHtml}
+          </div>
+        `;
+      }).join("");
+
+      svcContainer.innerHTML = html;
+      svcContainer.style.opacity = "1";
+
+      // Add disclaimer
+      const disclaimer = document.createElement("div");
+      disclaimer.className = "disclaimer";
+      disclaimer.textContent = `Live rates from Wise Comparison API · Updated ${new Date(data.fetched).toLocaleTimeString("en-GB")}`;
+      svcContainer.parentNode.appendChild(disclaimer);
+      return;
+    }
+    throw new Error("No providers");
+  } catch (e) {
+    // Fallback to static estimates
+    const fallbackHtml = SERVICES.map((svc) => {
+      const fee = amt * (svc.feePct / 100) + svc.feeFixed;
+      const effectiveRate = midRate * (1 - svc.markup / 100);
+      const received = (amt - fee) * effectiveRate;
+      const lostInTarget = converted - received;
+      const costInFrom = lostInTarget / midRate;
+      const costClass = costInFrom < 5 ? "low" : costInFrom < 30 ? "mid" : "high";
+      const linkHtml = svc.url ? `<a class="svc-link" href="${svc.url}" target="_blank" rel="noopener">Send via ${svc.name} →</a>` : "";
+      return `
+        <div class="svc-card">
+          <div class="svc-header">
+            <div>
+              <div class="svc-name" style="color:${svc.color}">${svc.name}</div>
+              <div class="svc-tagline">${svc.tagline}</div>
+            </div>
+            <div style="text-align:right">
+              <div class="svc-amount">${toCur.symbol} ${fmt(received, dp)}</div>
+              <div class="svc-cost ${costClass}">Cost: ${fromCur.symbol}${fmt(costInFrom, 2)}</div>
+            </div>
+          </div>
+          ${linkHtml}
+        </div>
+      `;
+    }).join("");
+    svcContainer.innerHTML = fallbackHtml;
+    svcContainer.style.opacity = "1";
+
+    const disclaimer = document.createElement("div");
+    disclaimer.className = "disclaimer";
+    disclaimer.textContent = "Estimated rates (offline fallback). Fees are approximate — check each provider for exact pricing.";
+    svcContainer.parentNode.appendChild(disclaimer);
+  }
 }
 
 function renderSalary() {
