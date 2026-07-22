@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="TrainKit — offline productivity tools that work between tunnels. Currency converter, salary breakdown, bill splitter, VAT & percentage calculators.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TrainKit">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+  <title>TrainKit — Offline Productivity Tools</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="header-top">
+      <div class="logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">TrainKit</span>
+      </div>
+      <div class="offline-badge" id="connectionBadge">
+        <span class="offline-dot"></span>
+        <span id="connectionText">Works Offline</span>
+      </div>
+    </div>
+    <p class="tagline">Productivity tools that work between tunnels</p>
+  </header>
+
+  <!-- Tool Area -->
+  <main class="tool-area" id="toolArea">
+    <!-- Dynamically populated -->
+  </main>
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-btn active" data-tool="fx">
+      <span class="nav-icon">💱</span>
+      <span class="nav-label">FX Rate</span>
+    </button>
+    <button class="nav-btn" data-tool="salary">
+      <span class="nav-icon">£</span>
+      <span class="nav-label">Salary</span>
+    </button>
+    <button class="nav-btn" data-tool="split">
+      <span class="nav-icon">÷</span>
+      <span class="nav-label">Split Bill</span>
+    </button>
+    <button class="nav-btn" data-tool="percent">
+      <span class="nav-icon">%</span>
+      <span class="nav-label">Percent</span>
+    </button>
+    <button class="nav-btn" data-tool="vat">
+      <span class="nav-icon">⊕</span>
+      <span class="nav-label">VAT</span>
+    </button>
+  </nav>
+
+  <script src="/app.js"></script>
+</body>
+</html>
