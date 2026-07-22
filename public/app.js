@@ -181,8 +181,9 @@ function updateFxResults() {
     const fee = amt * (svc.feePct / 100) + svc.feeFixed;
     const effectiveRate = midRate * (1 - svc.markup / 100);
     const received = (amt - fee) * effectiveRate;
-    const totalCost = converted - received;
-    const costClass = totalCost < 5 ? "low" : totalCost < 50 ? "mid" : "high";
+    const lostInTarget = converted - received;
+    const costInFrom = lostInTarget / midRate;
+    const costClass = costInFrom < 5 ? "low" : costInFrom < 30 ? "mid" : "high";
     const linkHtml = svc.url ? `<a class="svc-link" href="${svc.url}" target="_blank" rel="noopener">Send via ${svc.name} →</a>` : "";
     return `
       <div class="svc-card">
@@ -193,7 +194,7 @@ function updateFxResults() {
           </div>
           <div style="text-align:right">
             <div class="svc-amount">${toCur.symbol} ${fmt(received, dp)}</div>
-            <div class="svc-cost ${costClass}">Cost: ${fromCur.symbol}${fmt(totalCost, 2)}</div>
+            <div class="svc-cost ${costClass}">Cost: ${fromCur.symbol}${fmt(costInFrom, 2)}</div>
           </div>
         </div>
         ${linkHtml}
