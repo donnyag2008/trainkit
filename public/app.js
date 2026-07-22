@@ -26,7 +26,7 @@ const FALLBACK_RATES = {
 
 // Transfer services (estimates — fees vary by corridor and amount)
 const SERVICES = [
-  { name: "Wise", color: "#9fe870", feePct: 0.9, feeFixed: 0, markup: 0.0, url: "https://wise.com/send" },
+  { name: "Wise", color: "#9fe870", feePct: 0.9, feeFixed: 0, markup: 0.0, url: "https://wise.com/invite/ahpc/donnya15" },
   { name: "Revolut", color: "#6c63ff", feePct: 0.0, feeFixed: 0, markup: 1.0, url: "https://revolut.com" },
   { name: "OFX", color: "#00b4d8", feePct: 0.0, feeFixed: 0, markup: 1.5, url: "https://ofx.com" },
   { name: "Bank Transfer", color: "#94a3b8", feePct: 0.0, feeFixed: 25, markup: 3.5, url: null },
